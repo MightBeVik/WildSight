@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { api } from '../services/api';
 
-export default function Results({ results }) {
+export default function Results({ results, addToast }) {
   const canvasRef = useRef(null);
   const imgRef = useRef(null);
   const latest = results.length > 0 ? results[results.length - 1] : null;
@@ -22,6 +23,13 @@ export default function Results({ results }) {
   const [selectedDetectorKey, setSelectedDetectorKey] = useState(
     comparisonData.primaryDetector || latest?.detection?.primary_detector || detectorOrder[0] || null
   );
+  const [reviewState, setReviewState] = useState(null);
+  const [reviewDrafts, setReviewDrafts] = useState({});
+  const [exportTarget, setExportTarget] = useState('review');
+  const [savingReviewIndex, setSavingReviewIndex] = useState(null);
+  const [exportingDataset, setExportingDataset] = useState(false);
+
+  const imageId = latest?.upload?.image_id || latest?.detection?.image_id || null;
 
   useEffect(() => {
     setSelectedDetectorKey(comparisonData.primaryDetector || latest?.detection?.primary_detector || detectorOrder[0] || null);
@@ -32,6 +40,48 @@ export default function Results({ results }) {
   const animalDetections = selectedDetection?.detections?.filter(det => det.category === 'animal') || [];
   const classifications = selectedClassification?.classifications || [];
   const imageUrl = latest?.upload?.filepath || selectedDetection?.image_url || latest?.detection?.image_url;
+  const reviews = reviewState?.reviews || [];
+  const reviewSummary = reviewState?.summary || {
+    approved: 0,
+    rejected: 0,
+    pending: animalDetections.length,
+    total: animalDetections.length,
+  };
+
+  useEffect(() => {
+    if (!imageId || !selectedDetectorKey || !selectedDetection?.has_animal) {
+      setReviewState(null);
+      setReviewDrafts({});
+      return;
+    }
+
+    let cancelled = false;
+    api.getReviews(imageId, selectedDetectorKey)
+      .then(data => {
+        if (cancelled) return;
+        setReviewState(data);
+        setReviewDrafts(
+          data.reviews.reduce((acc, review) => {
+            acc[review.detection_index] = {
+              correctedLabel: review.corrected_label || '',
+              notes: review.notes || '',
+            };
+            return acc;
+          }, {})
+        );
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setReviewState(null);
+          setReviewDrafts({});
+          addToast?.(error.message, 'error');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [imageId, selectedDetectorKey, selectedDetection?.has_animal, addToast]);
 
   useEffect(() => {
     if (!selectedDetection || !canvasRef.current || !imgRef.current) return;
@@ -106,6 +156,59 @@ export default function Results({ results }) {
       img.onload = drawBoxes;
     }
   }, [selectedDetection, animalDetections, classifications]);
+
+  const updateDraft = (detectionIndex, field, value) => {
+    setReviewDrafts(prev => ({
+      ...prev,
+      [detectionIndex]: {
+        ...(prev[detectionIndex] || {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  const saveReview = async (detectionIndex, status) => {
+    if (!imageId || !selectedDetectorKey) return;
+
+    setSavingReviewIndex(detectionIndex);
+    try {
+      const payload = {
+        detector_key: selectedDetectorKey,
+        detection_index: detectionIndex,
+        status,
+        corrected_label: exportTarget === 'train_model' ? reviewDrafts[detectionIndex]?.correctedLabel || null : null,
+        notes: reviewDrafts[detectionIndex]?.notes || null,
+        export_target: exportTarget,
+      };
+      const response = await api.saveReview(imageId, payload);
+      setReviewState(response.state);
+      addToast?.('Review saved', 'success');
+    } catch (error) {
+      addToast?.(error.message, 'error');
+    } finally {
+      setSavingReviewIndex(null);
+    }
+  };
+
+  const exportDataset = async () => {
+    setExportingDataset(true);
+    try {
+      const { blob, filename } = await api.downloadYoloDetections(selectedDetectorKey || 'primary', exportTarget);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast?.('YOLO dataset export ready', 'success');
+    } catch (error) {
+      addToast?.(error.message, 'error');
+    } finally {
+      setExportingDataset(false);
+    }
+  };
 
   if (!latest) {
     return (
@@ -224,6 +327,53 @@ export default function Results({ results }) {
             </div>
           </div>
 
+          <div className="detection-card">
+            <div className="card-header">
+              <span className="card-title">Review and Export</span>
+              <span className="card-badge badge-info">YOLO</span>
+            </div>
+            <div className="review-mode-group">
+              <label className="review-mode-option">
+                <input
+                  type="radio"
+                  name="export-target"
+                  value="review"
+                  checked={exportTarget === 'review'}
+                  onChange={() => setExportTarget('review')}
+                />
+                <span>Review Export</span>
+              </label>
+              <label className="review-mode-option">
+                <input
+                  type="radio"
+                  name="export-target"
+                  value="train_model"
+                  checked={exportTarget === 'train_model'}
+                  onChange={() => setExportTarget('train_model')}
+                />
+                <span>Train Model</span>
+              </label>
+            </div>
+            <div className="review-summary-grid">
+              <div className="review-summary-chip">Approved: {reviewSummary.approved}</div>
+              <div className="review-summary-chip">Rejected: {reviewSummary.rejected}</div>
+              <div className="review-summary-chip">Pending: {reviewSummary.pending}</div>
+            </div>
+            <div className="detector-note" style={{ marginTop: '0.75rem' }}>
+              {exportTarget === 'train_model'
+                ? 'Train Model mode exports only approved detections and uses corrected labels when provided.'
+                : 'Review Export mode writes YOLO animal boxes from the selected detector output.'}
+            </div>
+            <button
+              className="btn btn-primary review-export-btn"
+              type="button"
+              disabled={exportingDataset}
+              onClick={exportDataset}
+            >
+              {exportingDataset ? 'Preparing YOLO ZIP...' : 'Export YOLO ZIP'}
+            </button>
+          </div>
+
           {classifications.length === 0 && selectedDetection?.has_animal && (
             <div className="detection-card">
               <div className="card-title">Classification Pending</div>
@@ -262,6 +412,70 @@ export default function Results({ results }) {
                   ))}
                 </div>
               )}
+
+              <div className="review-panel">
+                <div className="review-status-row">
+                  <span className={`review-status-badge status-${reviews[index]?.status || 'pending'}`}>
+                    {reviews[index]?.status || 'pending'}
+                  </span>
+                  <span className="review-prediction-copy">
+                    Predicted: {reviews[index]?.predicted_label || cls.species}
+                  </span>
+                </div>
+                <div className="review-action-row">
+                  <button
+                    type="button"
+                    className="btn btn-secondary review-btn-approve"
+                    disabled={savingReviewIndex === index}
+                    onClick={() => saveReview(index, 'approved')}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary review-btn-reject"
+                    disabled={savingReviewIndex === index}
+                    onClick={() => saveReview(index, 'rejected')}
+                  >
+                    Reject
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={savingReviewIndex === index}
+                    onClick={() => saveReview(index, 'pending')}
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                {exportTarget === 'train_model' && (
+                  <div className="review-feedback-block">
+                    <label className="review-field-label" htmlFor={`corrected-label-${index}`}>
+                      Corrected label for training
+                    </label>
+                    <input
+                      id={`corrected-label-${index}`}
+                      className="review-input"
+                      type="text"
+                      value={reviewDrafts[index]?.correctedLabel || ''}
+                      onChange={(event) => updateDraft(index, 'correctedLabel', event.target.value)}
+                      placeholder={cls.species}
+                    />
+                    <label className="review-field-label" htmlFor={`review-notes-${index}`}>
+                      Notes
+                    </label>
+                    <textarea
+                      id={`review-notes-${index}`}
+                      className="review-textarea"
+                      rows="3"
+                      value={reviewDrafts[index]?.notes || ''}
+                      onChange={(event) => updateDraft(index, 'notes', event.target.value)}
+                      placeholder="Optional review note"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           ))}
 

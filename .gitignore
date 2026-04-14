@@ -7,6 +7,10 @@ __pycache__/
 
 # Uploads (user data)
 uploads/
+CV_Project.yolov5pytorch/
+data/annotations/megamod_yolo/
+outputs/evaluation_reports/megamod_training/
+yolo26n.pt
 
 # Submission zip (too large for git)
 *.zip

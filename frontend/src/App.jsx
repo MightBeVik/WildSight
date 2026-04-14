@@ -60,7 +60,7 @@ function App() {
       case 'video':
         return <Video addToast={addToast} />;
       case 'results':
-        return <Results results={results} />;
+        return <Results results={results} addToast={addToast} />;
       case 'dashboard':
         return <Dashboard results={results} apiStatus={apiStatus} />;
       case 'gallery':

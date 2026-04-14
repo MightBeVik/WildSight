@@ -71,6 +71,29 @@ export const api = {
   },
 
   /**
+   * Download YOLO-format detections as a ZIP archive.
+   */
+  async downloadYoloDetections(detectorKey = 'primary', exportTarget = 'review') {
+    const params = new URLSearchParams({
+      detector_key: detectorKey,
+      export_target: exportTarget,
+      approved_only: exportTarget === 'train_model' ? 'true' : 'false',
+    });
+    const res = await fetch(`${API_BASE}/api/exports/yolo-detections?${params.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to export YOLO detections');
+    }
+
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^\"]+)"?/i);
+    return {
+      blob: await res.blob(),
+      filename: match?.[1] || 'wildsight_yolo_export.zip',
+    };
+  },
+
+  /**
    * List all uploaded images.
    */
   async getImages() {
@@ -126,6 +149,36 @@ export const api = {
   async getStats() {
     const res = await fetch(`${API_BASE}/api/stats`);
     if (!res.ok) throw new Error('Failed to fetch stats');
+    return res.json();
+  },
+
+  /**
+   * Get review state for one image and detector.
+   */
+  async getReviews(imageId, detectorKey = 'primary') {
+    const res = await fetch(`${API_BASE}/api/reviews/${imageId}?detector_key=${encodeURIComponent(detectorKey)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch review state');
+    }
+    return res.json();
+  },
+
+  /**
+   * Save approval/rejection/correction feedback for one detection.
+   */
+  async saveReview(imageId, payload) {
+    const res = await fetch(`${API_BASE}/api/reviews/${imageId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to save review');
+    }
     return res.json();
   },
 

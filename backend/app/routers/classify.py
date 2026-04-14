@@ -253,3 +253,8 @@ async def get_stats():
             "classifier": "EfficientNet-B3" if get_classifier().is_loaded else "Mock (demo mode)",
         },
     }
+
+
+def get_classification_results():
+    """Access classification results from other modules."""
+    return classification_results

@@ -103,7 +103,7 @@ export default function Landing({ setActivePage, apiStatus }) {
             <div className="landing-screen-grid" />
             <div className="landing-screen-overlay">
               <div className="landing-screen-box" />
-              <div className="landing-screen-reticle" />
+              <div className="landing-screen-animal" />
             </div>
             <div className="landing-screen-peaks" />
             <div className="landing-screen-timestamp">Detection to crop to classification to export</div>

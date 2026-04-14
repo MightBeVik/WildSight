@@ -7,10 +7,10 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from app.config import (
-    CAMERA_TRAP_DETECTOR_WEIGHTS,
     CONFIDENCE_THRESHOLD,
     GENERIC_YOLO_WEIGHTS,
     IOU_THRESHOLD,
+    MEGAMOD_WEIGHTS,
     MEGADETECTOR_WEIGHTS,
 )
 
@@ -184,6 +184,9 @@ class WildlifeDetector:
             if cls_id == 2 or cls_name == "vehicle":
                 return "vehicle"
 
+        if self.spec.key == "megamod":
+            return "animal"
+
         if cls_id == 0 or cls_name == "person":
             return "person"
 
@@ -227,19 +230,11 @@ class MultiDetectorManager:
     def _build_specs(self) -> List[DetectorSpec]:
         specs = [
             DetectorSpec(
-                key="camera_trap_yolo",
-                label="Camera Trap YOLO",
-                weights=CAMERA_TRAP_DETECTOR_WEIGHTS,
-                description="Preferred slot for a YOLO model fine-tuned on day/night wildlife camera-trap imagery.",
-                priority=0,
-                requires_local_file=True,
-            ),
-            DetectorSpec(
                 key="megadetector",
                 label="MegaDetector",
                 weights=MEGADETECTOR_WEIGHTS,
                 description="Camera-trap detector specialized for animals, people, and vehicles.",
-                priority=1,
+                priority=0,
                 requires_local_file=True,
             ),
             DetectorSpec(
@@ -247,8 +242,16 @@ class MultiDetectorManager:
                 label="Generic YOLO",
                 weights=GENERIC_YOLO_WEIGHTS,
                 description="General-purpose pretrained YOLO baseline for comparison.",
-                priority=2,
+                priority=1,
                 requires_local_file=False,
+            ),
+            DetectorSpec(
+                key="megamod",
+                label="MegaMod",
+                weights=MEGAMOD_WEIGHTS,
+                description="Custom wildlife detector fine-tuned on the labeled Alberta camera-trap dataset.",
+                priority=2,
+                requires_local_file=True,
             ),
         ]
         return sorted(specs, key=lambda spec: spec.priority)

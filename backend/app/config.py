@@ -27,9 +27,9 @@ MEGADETECTOR_WEIGHTS = os.getenv(
     "MEGADETECTOR_WEIGHTS",
     str(MODELS_DIR / "megadetector_v5.pt"),
 )
-CAMERA_TRAP_DETECTOR_WEIGHTS = os.getenv(
-    "CAMERA_TRAP_DETECTOR_WEIGHTS",
-    str(MODELS_DIR / "camera_trap_yolo.pt"),
+MEGAMOD_WEIGHTS = os.getenv(
+    "MEGAMOD_WEIGHTS",
+    str(MODELS_DIR / "megamod.pt"),
 )
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.3"))
 IOU_THRESHOLD = float(os.getenv("IOU_THRESHOLD", "0.45"))

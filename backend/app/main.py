@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import CORS_ORIGINS, OUTPUTS_DIR, UPLOAD_DIR
-from app.routers import upload, detect, classify, video
+from app.routers import upload, detect, classify, review, video
 
 # Configure logging
 logging.basicConfig(
@@ -49,6 +49,7 @@ app.mount("/outputs", StaticFiles(directory=str(OUTPUTS_DIR)), name="outputs")
 app.include_router(upload.router)
 app.include_router(detect.router)
 app.include_router(classify.router)
+app.include_router(review.router)
 app.include_router(video.router)
 
 
@@ -65,10 +66,12 @@ async def root():
             "classify": "POST /api/classify/{image_id}",
             "video_process": "POST /api/videos/process/{video_id}",
             "export": "GET /api/exports/labeled-images",
+            "yolo_export": "GET /api/exports/yolo-detections",
             "images": "GET /api/images",
             "videos": "GET /api/videos",
             "detections": "GET /api/detections",
             "classifications": "GET /api/classifications",
+            "reviews": "GET/PUT /api/reviews/{image_id}",
             "stats": "GET /api/stats",
         },
     }

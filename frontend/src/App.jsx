@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
+import Landing from './components/Landing';
 import Upload from './components/Upload';
+import Video from './components/Video';
 import Results from './components/Results';
 import Dashboard from './components/Dashboard';
 import Gallery from './components/Gallery';
 import { api } from './services/api';
 
 function App() {
-  const [activePage, setActivePage] = useState('upload');
+  const [activePage, setActivePage] = useState('home');
   const [results, setResults] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [apiStatus, setApiStatus] = useState('checking');
@@ -51,8 +53,12 @@ function App() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'upload':
+      case 'home':
+        return <Landing setActivePage={setActivePage} apiStatus={apiStatus} />;
+      case 'images':
         return <Upload onProcessed={handleProcessed} addToast={addToast} />;
+      case 'video':
+        return <Video addToast={addToast} />;
       case 'results':
         return <Results results={results} />;
       case 'dashboard':
@@ -60,7 +66,7 @@ function App() {
       case 'gallery':
         return <Gallery results={results} setActivePage={setActivePage} />;
       default:
-        return <Upload onProcessed={handleProcessed} addToast={addToast} />;
+        return <Landing setActivePage={setActivePage} apiStatus={apiStatus} />;
     }
   };
 

@@ -5,6 +5,23 @@ const API_BASE = '';  // Uses Vite proxy in dev
 
 export const api = {
   /**
+   * Upload a single video file.
+   */
+  async uploadVideo(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/api/videos/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Video upload failed');
+    }
+    return res.json();
+  },
+
+  /**
    * Upload a single image file.
    */
   async uploadImage(file) {
@@ -130,6 +147,37 @@ export const api = {
     });
     if (!res.ok) throw new Error('Delete failed');
     return res.json();
+  },
+
+  /**
+   * Analyze a video by sampling frames.
+   */
+  async analyzeVideo(videoId, confidence = 0.3, sampleSeconds = 1, models = 'all') {
+    const params = new URLSearchParams({
+      confidence: String(confidence),
+      sample_seconds: String(sampleSeconds),
+      models,
+    });
+    const res = await fetch(`${API_BASE}/api/videos/process/${videoId}?${params.toString()}`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Video processing failed');
+    }
+    return res.json();
+  },
+
+  /**
+   * Full video pipeline: upload -> analyze sampled frames.
+   */
+  async processVideo(file, confidence = 0.3, sampleSeconds = 1, models = 'all') {
+    const upload = await this.uploadVideo(file);
+    const analysis = await this.analyzeVideo(upload.video_id, confidence, sampleSeconds, models);
+    return {
+      upload,
+      analysis,
+    };
   },
 
   /**

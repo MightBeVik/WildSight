@@ -116,9 +116,9 @@ export default function Upload({ onProcessed, addToast }) {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">Upload Camera Trap Images</h1>
+        <h1 className="page-title">Image Analysis</h1>
         <p className="page-description">
-          Drag and drop or browse to upload wildlife camera trap images for automated multi-model detection and classification.
+          Drag and drop or browse to analyze wildlife camera trap images with detection, classification, and comparison models.
         </p>
       </div>
 

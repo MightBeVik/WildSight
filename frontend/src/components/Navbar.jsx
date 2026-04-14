@@ -2,7 +2,9 @@ import React from 'react';
 
 export default function Navbar({ activePage, setActivePage, apiStatus, theme, toggleTheme }) {
   const pages = [
-    { id: 'upload', label: 'Upload' },
+    { id: 'home', label: 'Home' },
+    { id: 'images', label: 'Images' },
+    { id: 'video', label: 'Video' },
     { id: 'results', label: 'Results' },
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'gallery', label: 'Gallery' },

@@ -11,10 +11,14 @@ DATA_DIR = BASE_DIR / "data"
 MODELS_DIR = DATA_DIR / "models"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 PREDICTIONS_DIR = OUTPUTS_DIR / "predictions"
+VIDEO_UPLOAD_DIR = UPLOAD_DIR / "videos"
+VIDEO_OUTPUT_DIR = OUTPUTS_DIR / "video_frames"
 
 # Ensure directories exist
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 PREDICTIONS_DIR.mkdir(parents=True, exist_ok=True)
+VIDEO_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+VIDEO_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Model configuration
 MEGADETECTOR_MODEL = os.getenv("MEGADETECTOR_MODEL", "yolov5s")  # Default to yolov5s
@@ -33,6 +37,7 @@ IOU_THRESHOLD = float(os.getenv("IOU_THRESHOLD", "0.45"))
 # Image settings
 MAX_IMAGE_SIZE = 1280  # Max dimension for processing
 SUPPORTED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 
 # Alberta Wildlife Species Labels
 SPECIES_LABELS = [

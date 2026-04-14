@@ -14,9 +14,9 @@ export default function Gallery({ results, setActivePage }) {
           <button
             className="btn btn-primary"
             style={{ marginTop: '1rem' }}
-            onClick={() => setActivePage('upload')}
+            onClick={() => setActivePage('images')}
           >
-            Go to Upload
+            Go to Images
           </button>
         </div>
       </div>

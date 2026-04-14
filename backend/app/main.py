@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.config import CORS_ORIGINS, UPLOAD_DIR
-from app.routers import upload, detect, classify
+from app.config import CORS_ORIGINS, OUTPUTS_DIR, UPLOAD_DIR
+from app.routers import upload, detect, classify, video
 
 # Configure logging
 logging.basicConfig(
@@ -43,11 +43,13 @@ app.add_middleware(
 
 # Serve uploaded images as static files
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+app.mount("/outputs", StaticFiles(directory=str(OUTPUTS_DIR)), name="outputs")
 
 # Include routers
 app.include_router(upload.router)
 app.include_router(detect.router)
 app.include_router(classify.router)
+app.include_router(video.router)
 
 
 @app.get("/")
@@ -58,10 +60,13 @@ async def root():
         "docs": "/docs",
         "endpoints": {
             "upload": "POST /api/upload",
+            "video_upload": "POST /api/videos/upload",
             "detect": "POST /api/detect/{image_id}",
             "classify": "POST /api/classify/{image_id}",
+            "video_process": "POST /api/videos/process/{video_id}",
             "export": "GET /api/exports/labeled-images",
             "images": "GET /api/images",
+            "videos": "GET /api/videos",
             "detections": "GET /api/detections",
             "classifications": "GET /api/classifications",
             "stats": "GET /api/stats",

@@ -36,6 +36,24 @@ export const api = {
   },
 
   /**
+   * Download all labeled processed images as a ZIP archive.
+   */
+  async downloadLabeledImages(detectorKey = 'primary') {
+    const res = await fetch(`${API_BASE}/api/exports/labeled-images?detector_key=${encodeURIComponent(detectorKey)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to download labeled images');
+    }
+
+    const disposition = res.headers.get('content-disposition') || '';
+    const match = disposition.match(/filename="?([^\"]+)"?/i);
+    return {
+      blob: await res.blob(),
+      filename: match?.[1] || 'wildsight_labeled_images.zip',
+    };
+  },
+
+  /**
    * List all uploaded images.
    */
   async getImages() {

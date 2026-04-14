@@ -5,10 +5,10 @@ Handles resizing, normalization, augmentation, and batch processing.
 import io
 import uuid
 from pathlib import Path
-from typing import Tuple, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 from app.config import MAX_IMAGE_SIZE, SUPPORTED_EXTENSIONS
 
@@ -127,8 +127,59 @@ def augment_image(img: Image.Image, augmentation: str) -> Image.Image:
         return img
 
 
-def image_to_bytes(img: Image.Image, format: str = "JPEG") -> bytes:
+def image_to_bytes(img: Image.Image, format: str = "JPEG", **save_kwargs) -> bytes:
     """Convert a PIL Image to bytes."""
     buffer = io.BytesIO()
-    img.save(buffer, format=format)
+    img.save(buffer, format=format, **save_kwargs)
     return buffer.getvalue()
+
+
+def annotate_image(
+    img: Image.Image,
+    detections: List[dict],
+    classifications: Optional[List[dict]] = None,
+) -> Image.Image:
+    """Draw detection boxes and optional classification labels onto an image."""
+    annotated = img.copy()
+    draw = ImageDraw.Draw(annotated)
+    font = ImageFont.load_default()
+
+    animal_detections = [det for det in detections if det.get("category") == "animal"]
+
+    for index, det in enumerate(animal_detections):
+        x1 = int(det["x1"] * annotated.width)
+        y1 = int(det["y1"] * annotated.height)
+        x2 = int(det["x2"] * annotated.width)
+        y2 = int(det["y2"] * annotated.height)
+
+        draw.rectangle((x1, y1, x2, y2), outline="#2d8a3f", width=max(2, annotated.width // 350))
+
+        classification = classifications[index] if classifications and index < len(classifications) else None
+        if classification:
+            label = f"{classification['species']} {classification['confidence'] * 100:.1f}%"
+        else:
+            label = f"Animal {det['confidence'] * 100:.1f}%"
+
+        text_bbox = draw.textbbox((0, 0), label, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        label_top = max(0, y1 - text_height - 10)
+        label_bottom = label_top + text_height + 8
+        label_right = min(annotated.width, x1 + text_width + 12)
+
+        draw.rectangle((x1, label_top, label_right, label_bottom), fill="#102815")
+        draw.text((x1 + 6, label_top + 4), label, fill="#f4fff3", font=font)
+
+    if not animal_detections:
+        empty_label = "No animals detected"
+        text_bbox = draw.textbbox((0, 0), empty_label, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        padding = 10
+        draw.rectangle(
+            (16, 16, 16 + text_width + padding * 2, 16 + text_height + padding * 2),
+            fill="#2c2308",
+        )
+        draw.text((16 + padding, 16 + padding), empty_label, fill="#fff4cb", font=font)
+
+    return annotated

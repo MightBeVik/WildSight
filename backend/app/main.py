@@ -60,6 +60,7 @@ async def root():
             "upload": "POST /api/upload",
             "detect": "POST /api/detect/{image_id}",
             "classify": "POST /api/classify/{image_id}",
+            "export": "GET /api/exports/labeled-images",
             "images": "GET /api/images",
             "detections": "GET /api/detections",
             "classifications": "GET /api/classifications",

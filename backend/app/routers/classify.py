@@ -1,11 +1,16 @@
 """Classification router — runs species classification per detector result."""
+import io
+import json
+import zipfile
 from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from app.services.classifier import get_classifier
-from app.services.preprocessor import load_image, crop_detection
+from app.services.detector import get_detector
+from app.services.preprocessor import annotate_image, crop_detection, image_to_bytes, load_image, resize_image
 from app.routers.upload import get_uploaded_images
 from app.routers.detect import get_detection_results
 
@@ -152,6 +157,65 @@ async def get_classification(image_id: str, detector_key: str = Query(default="p
         raise HTTPException(status_code=404, detail=f"No classification results for detector '{detector_key}'")
 
     return classification_results[image_id][detector_key]
+
+
+@router.get("/exports/labeled-images")
+async def download_labeled_images(detector_key: str = Query(default="primary")):
+    """Download all processed images with drawn detections and labels as a ZIP archive."""
+    images = get_uploaded_images()
+    detections = get_detection_results()
+
+    if not detections:
+        raise HTTPException(status_code=404, detail="No processed images available for export")
+
+    zip_buffer = io.BytesIO()
+    manifest = []
+
+    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for image_id, detection_bundle in detections.items():
+            image_info = images.get(image_id)
+            if image_info is None:
+                continue
+
+            selected_key = detection_bundle["primary_detector"] if detector_key == "primary" else detector_key
+            detection = detection_bundle["by_detector"].get(selected_key)
+            if detection is None:
+                continue
+
+            selected_classification = classification_results.get(image_id, {}).get(selected_key)
+            classifications = selected_classification["classifications"] if selected_classification else []
+
+            labeled = annotate_image(
+                resize_image(load_image(Path(image_info["filepath"])), max_size=1600),
+                detection["detections"],
+                classifications,
+            )
+
+            archive_name = f"{Path(image_info['filename']).stem}_{selected_key}_labeled.jpg"
+            archive.writestr(
+                archive_name,
+                image_to_bytes(labeled, format="JPEG", quality=90, optimize=True),
+            )
+            manifest.append(
+                {
+                    "image_id": image_id,
+                    "filename": image_info["filename"],
+                    "archive_name": archive_name,
+                    "detector_key": selected_key,
+                    "detector_label": detection["detector_label"],
+                    "has_animal": detection["has_animal"],
+                    "total_classifications": len(classifications),
+                }
+            )
+
+        archive.writestr("manifest.json", json.dumps({"images": manifest}, indent=2))
+
+    zip_buffer.seek(0)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    headers = {
+        "Content-Disposition": f'attachment; filename="wildsight_labeled_images_{timestamp}.zip"',
+    }
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
 
 
 @router.get("/stats")

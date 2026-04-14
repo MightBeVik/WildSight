@@ -1,15 +1,72 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../services/api';
+
+function FrameSequencePlayer({ title, frames, accentLabel }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    setCurrentIndex(0);
+    setIsPlaying(false);
+  }, [frames]);
+
+  useEffect(() => {
+    if (!isPlaying || frames.length <= 1) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % frames.length);
+    }, 500);
+
+    return () => window.clearInterval(timer);
+  }, [isPlaying, frames]);
+
+  if (!frames.length) {
+    return null;
+  }
+
+  const currentFrame = frames[currentIndex];
+
+  return (
+    <div className="card video-summary-card video-annotated-card">
+      <div className="card-header">
+        <div className="card-title">{title}</div>
+        <span className="card-badge badge-success">{accentLabel}</span>
+      </div>
+      <img
+        src={currentFrame.image_url || currentFrame.annotated_frame_url}
+        alt={`${title} frame ${currentIndex + 1}`}
+        className="video-preview"
+      />
+      <div className="video-sequence-toolbar">
+        <button className="btn btn-secondary" type="button" onClick={() => setCurrentIndex((prev) => Math.max(prev - 1, 0))}>
+          Prev
+        </button>
+        <button className="btn btn-primary" type="button" onClick={() => setIsPlaying((prev) => !prev)}>
+          {isPlaying ? 'Pause' : 'Play'}
+        </button>
+        <button className="btn btn-secondary" type="button" onClick={() => setCurrentIndex((prev) => Math.min(prev + 1, frames.length - 1))}>
+          Next
+        </button>
+      </div>
+      <div className="video-filename">
+        Frame {currentIndex + 1} of {frames.length} · {currentFrame.timestamp_seconds?.toFixed?.(1) ?? currentFrame.timestamp_seconds}s
+      </div>
+    </div>
+  );
+}
 
 export default function Video({ addToast }) {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [processing, setProcessing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [confidence, setConfidence] = useState(0.3);
   const [sampleSeconds, setSampleSeconds] = useState(1);
   const [result, setResult] = useState(null);
   const fileInputRef = useRef(null);
 
-  const handleVideo = (file) => {
+  const handleVideo = async (file) => {
     if (!file) return;
     if (!file.type.startsWith('video/')) {
       addToast('Please choose a video file', 'warning');
@@ -20,19 +77,34 @@ export default function Video({ addToast }) {
       URL.revokeObjectURL(selectedVideo.preview);
     }
 
-    setSelectedVideo({
-      file,
-      preview: URL.createObjectURL(file),
-    });
-    setResult(null);
+    const preview = URL.createObjectURL(file);
+    setUploading(true);
+    try {
+      const uploaded = await api.uploadVideo(file);
+      setSelectedVideo({
+        file,
+        preview,
+        uploaded,
+      });
+      setResult(null);
+      addToast('Video uploaded', 'success');
+    } catch (error) {
+      URL.revokeObjectURL(preview);
+      addToast(error.message, 'error');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const processVideo = async () => {
-    if (!selectedVideo?.file) return;
+    if (!selectedVideo?.uploaded?.video_id) return;
     setProcessing(true);
     try {
-      const processed = await api.processVideo(selectedVideo.file, confidence, sampleSeconds);
-      setResult(processed);
+      const analysis = await api.analyzeVideo(selectedVideo.uploaded.video_id, confidence, sampleSeconds);
+      setResult({
+        upload: selectedVideo.uploaded,
+        analysis,
+      });
       addToast('Video analysis complete', 'success');
     } catch (error) {
       addToast(error.message, 'error');
@@ -51,6 +123,8 @@ export default function Video({ addToast }) {
 
   const analysis = result?.analysis;
   const keyFrames = analysis?.frames || [];
+  const previewFrames = selectedVideo?.uploaded?.preview_frames || [];
+  const showNativePreview = selectedVideo?.file && selectedVideo.file.type !== 'video/x-msvideo';
 
   return (
     <div className="page-container">
@@ -96,7 +170,14 @@ export default function Video({ addToast }) {
                 <div className="card-title">Selected Video</div>
                 <span className="card-badge badge-info">Sampled Analysis</span>
               </div>
-              <video className="video-preview" controls src={selectedVideo.preview} />
+              {showNativePreview ? (
+                <video className="video-preview" controls src={selectedVideo.preview} />
+              ) : (
+                <div className="video-preview-fallback">
+                  <div className="video-filename">Native browser playback is limited for AVI files.</div>
+                  <div className="video-filename">Use the preview sequence below to inspect frames before analysis.</div>
+                </div>
+              )}
               <div className="video-filename">{selectedVideo.file.name}</div>
             </div>
 
@@ -137,12 +218,18 @@ export default function Video({ addToast }) {
                 <button className="btn btn-secondary" type="button" onClick={clearVideo} disabled={processing}>
                   Clear
                 </button>
-                <button className="btn btn-primary" type="button" onClick={processVideo} disabled={processing}>
-                  {processing ? 'Processing Video...' : 'Analyze Video'}
+                <button className="btn btn-primary" type="button" onClick={processVideo} disabled={processing || uploading || !selectedVideo?.uploaded}>
+                  {uploading ? 'Uploading Video...' : processing ? 'Processing Video...' : 'Analyze Video'}
                 </button>
               </div>
             </div>
           </div>
+
+          <FrameSequencePlayer
+            title="Raw Preview"
+            frames={previewFrames}
+            accentLabel="Upload Preview"
+          />
 
           {analysis && (
             <>
@@ -164,6 +251,12 @@ export default function Video({ addToast }) {
                   <div className="stat-value">{(analysis.processing_time_ms / 1000).toFixed(1)}s</div>
                 </div>
               </div>
+
+              <FrameSequencePlayer
+                title="Annotated Playback"
+                frames={keyFrames}
+                accentLabel="Processed Preview"
+              />
 
               <div className="card video-summary-card">
                 <div className="card-header">

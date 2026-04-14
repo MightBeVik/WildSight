@@ -23,6 +23,84 @@ uploaded_videos: dict = {}
 video_results: dict = {}
 
 
+def _extract_preview_frames(
+    filepath: Path,
+    output_dir: Path,
+    fps: float,
+    frame_count: int,
+    max_preview_frames: int = 12,
+) -> list[dict]:
+    """Extract evenly spaced preview frames for browser-safe video inspection."""
+    capture = cv2.VideoCapture(str(filepath))
+    if not capture.isOpened():
+        return []
+
+    try:
+        if frame_count <= 0:
+            frame_indices = [0]
+        elif frame_count <= max_preview_frames:
+            frame_indices = list(range(frame_count))
+        else:
+            step = max(frame_count // max_preview_frames, 1)
+            frame_indices = list(range(0, frame_count, step))[:max_preview_frames]
+
+        preview_frames = []
+        for preview_index, frame_index in enumerate(frame_indices):
+            capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
+            ok, frame = capture.read()
+            if not ok:
+                continue
+
+            filename = f"preview_{preview_index:04d}.jpg"
+            preview_path = output_dir / filename
+            cv2.imwrite(str(preview_path), frame)
+            preview_frames.append(
+                {
+                    "frame_number": int(frame_index),
+                    "timestamp_seconds": round(frame_index / fps, 2) if fps else 0.0,
+                    "image_url": f"/outputs/video_frames/{output_dir.name}/{filename}",
+                }
+            )
+
+        return preview_frames
+    finally:
+        capture.release()
+
+
+def _build_annotated_preview_video(frame_paths: list[Path], output_path: Path, fps: float) -> str | None:
+    """Build a sampled annotated preview clip from saved frame images."""
+    if not frame_paths:
+        return None
+
+    first_frame = cv2.imread(str(frame_paths[0]))
+    if first_frame is None:
+        return None
+
+    height, width = first_frame.shape[:2]
+    writer = cv2.VideoWriter(
+        str(output_path),
+        cv2.VideoWriter_fourcc(*"mp4v"),
+        max(fps, 1.0),
+        (width, height),
+    )
+
+    if not writer.isOpened():
+        return None
+
+    try:
+        for frame_path in frame_paths:
+            frame = cv2.imread(str(frame_path))
+            if frame is None:
+                continue
+            if frame.shape[1] != width or frame.shape[0] != height:
+                frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
+            writer.write(frame)
+    finally:
+        writer.release()
+
+    return output_path.name if output_path.exists() else None
+
+
 def _video_metadata(filepath: Path) -> dict:
     capture = cv2.VideoCapture(str(filepath))
     if not capture.isOpened():
@@ -70,12 +148,25 @@ async def upload_video(file: UploadFile = File(...)):
         filepath.unlink(missing_ok=True)
         raise HTTPException(status_code=400, detail=metadata["error"])
 
+    output_dir = VIDEO_OUTPUT_DIR / video_id
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for existing in output_dir.glob("preview_*.jpg"):
+        existing.unlink(missing_ok=True)
+
+    preview_frames = _extract_preview_frames(
+        filepath,
+        output_dir,
+        metadata["fps"] or 1.0,
+        metadata["frame_count"] or 0,
+    )
+
     uploaded_videos[video_id] = {
         "video_id": video_id,
         "filename": file.filename,
         "saved_as": filename,
         "filepath": str(filepath),
         "video_url": f"/uploads/videos/{filename}",
+        "preview_frames": preview_frames,
         "upload_time": datetime.now().isoformat(),
         **metadata,
     }
@@ -119,6 +210,7 @@ async def process_video(
 
     start = time.time()
     frames = []
+    annotated_frame_paths: list[Path] = []
     species_counts = {}
     frames_with_animals = 0
 
@@ -154,6 +246,7 @@ async def process_video(
         annotated_name = f"frame_{sample_number:04d}.jpg"
         annotated_path = output_dir / annotated_name
         annotated.save(annotated_path, format="JPEG", quality=90, optimize=True)
+        annotated_frame_paths.append(annotated_path)
         raw_frame_path.unlink(missing_ok=True)
 
         frames.append(
@@ -173,6 +266,13 @@ async def process_video(
 
     capture.release()
 
+    preview_fps = 1.0 / sample_seconds if sample_seconds > 0 else 1.0
+    preview_filename = _build_annotated_preview_video(
+        annotated_frame_paths,
+        output_dir / "annotated_preview.mp4",
+        preview_fps,
+    )
+
     result = {
         "video_id": video_id,
         "filename": info["filename"],
@@ -187,6 +287,10 @@ async def process_video(
         "frames_with_animals": frames_with_animals,
         "species_counts": species_counts,
         "processing_time_ms": round((time.time() - start) * 1000, 2),
+        "annotated_video_url": (
+            f"/outputs/video_frames/{video_id}/{preview_filename}" if preview_filename else None
+        ),
+        "annotated_video_fps": round(preview_fps, 2),
         "frames": frames,
         "timestamp": datetime.now().isoformat(),
     }

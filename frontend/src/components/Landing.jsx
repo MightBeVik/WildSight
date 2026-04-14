@@ -8,8 +8,8 @@ const workflowSteps = [
   },
   {
     id: '02',
-    title: 'Detect wildlife',
-    text: 'MegaDetector identifies animals, people, and vehicles so likely wildlife frames can be isolated first.',
+    title: 'Compare detectors',
+    text: 'Run MegaDetector, Generic YOLO, and the new MegaMod detector side by side to inspect which model isolates wildlife best.',
   },
   {
     id: '03',
@@ -19,16 +19,16 @@ const workflowSteps = [
   {
     id: '04',
     title: 'Review and export',
-    text: 'Inspect results in the dashboard or gallery, then download labeled image outputs for review.',
+    text: 'Approve or reject detections, correct labels for training, and export YOLO-ready review or training datasets.',
   },
 ];
 
 const modules = [
   {
     id: 'MOD_01',
-    title: 'Species detection',
-    text: 'Runs wildlife-object detection on trail camera images using MegaDetector, with optional comparison against a general YOLO baseline.',
-    meta: 'MegaDetector + optional YOLO comparison',
+    title: 'Multi-model detection',
+    text: 'Runs wildlife-object detection on trail camera images with three detector options so the team can compare baseline and custom behavior.',
+    meta: 'MegaDetector + Generic YOLO + MegaMod',
   },
   {
     id: 'MOD_02',
@@ -38,9 +38,33 @@ const modules = [
   },
   {
     id: 'MOD_03',
-    title: 'Batch processing',
-    text: 'Supports folder uploads, downloadable labeled outputs, and sampled-frame video analysis in a separate workflow.',
-    meta: 'Images + exports + sampled video frames',
+    title: 'Review to training loop',
+    text: 'Supports approval, rejection, corrected labels, and YOLO export so reviewed detections can become future training data.',
+    meta: 'Human review + YOLO export',
+  },
+  {
+    id: 'MOD_04',
+    title: 'Batch and video workflows',
+    text: 'Supports folder uploads, downloadable outputs, and sampled-frame video analysis in a separate tab for longer clips.',
+    meta: 'Images + folders + sampled video frames',
+  },
+];
+
+const localLinks = [
+  {
+    label: 'Frontend app',
+    href: 'http://localhost:5173/',
+    note: 'Main local interface for image, video, results, dashboard, and gallery testing.',
+  },
+  {
+    label: 'Backend docs',
+    href: 'http://localhost:8000/docs',
+    note: 'FastAPI Swagger UI for direct endpoint inspection and manual API testing.',
+  },
+  {
+    label: 'Health endpoint',
+    href: 'http://localhost:8000/api/health',
+    note: 'Quick status check for detector and classifier readiness, including MegaMod.',
   },
 ];
 
@@ -49,7 +73,7 @@ export default function Landing({ setActivePage, apiStatus }) {
     <div className="landing-shell">
       <section className="landing-hero">
         <div className="landing-hero-copy landing-panel">
-          <div className="landing-kicker">Wildlife Detection System v2.4</div>
+          <div className="landing-kicker">Wildlife Detection System v2.5</div>
           <h1 className="landing-title">
             Detect. Classify.
             <br />
@@ -57,7 +81,7 @@ export default function Landing({ setActivePage, apiStatus }) {
           </h1>
           <p className="landing-description">
             WildSight helps camera-trap teams turn raw field imagery into organized wildlife detections,
-            species predictions, and exportable review assets.
+            species predictions, review decisions, and YOLO-ready export sets for future model improvement.
           </p>
 
           <div className="landing-actions">
@@ -71,17 +95,25 @@ export default function Landing({ setActivePage, apiStatus }) {
 
           <div className="landing-stat-row">
             <div className="landing-stat-card">
-              <span className="landing-stat-value">MegaDetector</span>
-              <span className="landing-stat-label">Primary detector</span>
+              <span className="landing-stat-value">3</span>
+              <span className="landing-stat-label">Loaded detectors</span>
+            </div>
+            <div className="landing-stat-card">
+              <span className="landing-stat-value">MegaMod</span>
+              <span className="landing-stat-label">Custom local detector</span>
             </div>
             <div className="landing-stat-card">
               <span className="landing-stat-value">EfficientNet-B3</span>
               <span className="landing-stat-label">Species classifier</span>
             </div>
             <div className="landing-stat-card">
-              <span className="landing-stat-value">{apiStatus === 'online' ? 'Live' : 'Demo'}</span>
+              <span className="landing-stat-value">{apiStatus === 'online' ? 'Live' : 'Offline'}</span>
               <span className="landing-stat-label">Backend status</span>
             </div>
+          </div>
+
+          <div className="landing-inline-note">
+            Current build supports folder upload, sampled video analysis, reviewed detections, and YOLO export for training.
           </div>
         </div>
 
@@ -116,7 +148,7 @@ export default function Landing({ setActivePage, apiStatus }) {
             </div>
             <div className="landing-feed-row emphasis">
               <span>Detector stage</span>
-              <strong>MegaDetector bounding boxes</strong>
+              <strong>MegaDetector, Generic YOLO, MegaMod</strong>
             </div>
             <div className="landing-feed-row">
               <span>Classifier stage</span>
@@ -124,7 +156,7 @@ export default function Landing({ setActivePage, apiStatus }) {
             </div>
             <div className="landing-feed-row">
               <span>Outputs</span>
-              <strong>Results, gallery, labeled ZIP</strong>
+              <strong>Results, review state, labeled ZIP, YOLO ZIP</strong>
             </div>
           </div>
 
@@ -165,6 +197,25 @@ export default function Landing({ setActivePage, apiStatus }) {
               <h3>{module.title}</h3>
               <p>{module.text}</p>
               <div className="landing-module-meta">{module.meta}</div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-section">
+        <div className="landing-section-header">
+          <span className="landing-section-label">Local Testing</span>
+          <h2>Use these endpoints while you test</h2>
+        </div>
+
+        <div className="landing-links-grid">
+          {localLinks.map(link => (
+            <article className="landing-link-card" key={link.href}>
+              <span className="landing-link-label">{link.label}</span>
+              <a className="landing-link-url" href={link.href} target="_blank" rel="noreferrer">
+                {link.href}
+              </a>
+              <p>{link.note}</p>
             </article>
           ))}
         </div>

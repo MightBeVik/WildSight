@@ -93,4 +93,13 @@ IMAGENET_TO_WILDLIFE = {
 # API Settings
 API_HOST = os.getenv("API_HOST", "0.0.0.0")
 API_PORT = int(os.getenv("API_PORT", "8000"))
-CORS_ORIGINS = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
+
+_default_cors_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+]
+_cors_origins_env = os.getenv("CORS_ORIGINS", "")
+CORS_ORIGINS = [
+    origin.strip() for origin in _cors_origins_env.split(",") if origin.strip()
+] or _default_cors_origins

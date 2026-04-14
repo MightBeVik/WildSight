@@ -490,7 +490,7 @@ body::after {
 
 .landing-stat-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -515,6 +515,17 @@ body::after {
 .landing-stat-label {
   font-size: 0.68rem;
   color: var(--text-muted);
+}
+
+.landing-inline-note {
+  position: relative;
+  z-index: 1;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--text-secondary);
 }
 
 .landing-hero-visual {
@@ -761,7 +772,7 @@ body::after {
 
 .landing-modules-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
 
@@ -772,6 +783,50 @@ body::after {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.landing-links-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.landing-link-card {
+  position: relative;
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-xl);
+  background: var(--bg-glass);
+  padding: 1.35rem;
+  box-shadow: var(--shadow-card);
+}
+
+.landing-link-label {
+  display: inline-flex;
+  margin-bottom: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-accent);
+}
+
+.landing-link-url {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--metric-emphasis);
+  font-weight: 800;
+  font-size: 1rem;
+  line-height: 1.5;
+  word-break: break-word;
+  text-decoration: none;
+}
+
+.landing-link-url:hover {
+  text-decoration: underline;
+}
+
+.landing-link-card p {
+  color: var(--text-secondary);
 }
 
 .nav-btn.active::after {
@@ -2002,6 +2057,9 @@ body::after {
   .landing-modules-grid {
     grid-template-columns: 1fr;
   }
+  .landing-links-grid {
+    grid-template-columns: 1fr;
+  }
   .results-grid {
     grid-template-columns: 1fr;
   }
@@ -2032,7 +2090,8 @@ body::after {
     align-items: flex-start;
   }
   .landing-stat-row,
-  .landing-workflow-grid {
+  .landing-workflow-grid,
+  .landing-modules-grid {
     grid-template-columns: 1fr;
   }
   .landing-visual-screen {

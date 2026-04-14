@@ -106,7 +106,7 @@ export default function Dashboard({ results, apiStatus }) {
             <div>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', marginTop: '0.5rem' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--green-700)' }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--metric-emphasis)' }}>
                     {((imagesWithAnimals / totalImages) * 100).toFixed(0)}%
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>

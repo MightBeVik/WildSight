@@ -210,11 +210,11 @@ export default function Results({ results }) {
             <div className="detector-note" style={{ marginTop: '0.5rem' }}>{selectedDetection?.detector_description}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--green-800)' }}>{animalDetections.length}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--metric-emphasis)' }}>{animalDetections.length}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Animal Boxes</div>
               </div>
               <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--green-800)' }}>{classifications.length}</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--metric-emphasis)' }}>{classifications.length}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Species Classified</div>
               </div>
             </div>

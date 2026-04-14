@@ -40,8 +40,8 @@ export default function Navbar({ activePage, setActivePage, apiStatus, theme, to
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
             <span className="theme-toggle-track">
-              <span className="theme-toggle-label">{theme === 'light' ? 'Day' : 'Night'}</span>
-              <span className="theme-toggle-thumb" />
+              <span className="theme-toggle-icon" aria-hidden="true">{theme === 'light' ? '☀' : '☾'}</span>
+              <span className="theme-toggle-copy">{theme === 'light' ? 'Day Mode' : 'Night Mode'}</span>
             </span>
           </button>
 

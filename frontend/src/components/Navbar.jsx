@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Navbar({ activePage, setActivePage, apiStatus }) {
+export default function Navbar({ activePage, setActivePage, apiStatus, theme, toggleTheme }) {
   const pages = [
     { id: 'upload', label: 'Upload' },
     { id: 'results', label: 'Results' },
@@ -32,9 +32,23 @@ export default function Navbar({ activePage, setActivePage, apiStatus }) {
           ))}
         </ul>
 
-        <div className="navbar-status">
-          <span className={`status-dot ${apiStatus === 'online' ? '' : 'offline'}`} />
-          <span>{apiStatus === 'online' ? 'Connected' : 'Demo Mode'}</span>
+        <div className="navbar-controls">
+          <button
+            type="button"
+            className={`theme-toggle ${theme === 'dark' ? 'dark' : 'light'}`}
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            <span className="theme-toggle-track">
+              <span className="theme-toggle-label">{theme === 'light' ? 'Day' : 'Night'}</span>
+              <span className="theme-toggle-thumb" />
+            </span>
+          </button>
+
+          <div className="navbar-status">
+            <span className={`status-dot ${apiStatus === 'online' ? '' : 'offline'}`} />
+            <span>{apiStatus === 'online' ? 'Connected' : 'Demo Mode'}</span>
+          </div>
         </div>
       </div>
     </nav>

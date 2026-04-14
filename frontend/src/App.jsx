@@ -11,6 +11,12 @@ function App() {
   const [results, setResults] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [apiStatus, setApiStatus] = useState('checking');
+  const [theme, setTheme] = useState(() => localStorage.getItem('wildsight-theme') || 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('wildsight-theme', theme);
+  }, [theme]);
 
   // Check API connection on mount
   useEffect(() => {
@@ -39,6 +45,10 @@ function App() {
     setResults(prev => [...prev, result]);
   }, []);
 
+  const toggleTheme = useCallback(() => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  }, []);
+
   const renderPage = () => {
     switch (activePage) {
       case 'upload':
@@ -60,6 +70,8 @@ function App() {
         activePage={activePage}
         setActivePage={setActivePage}
         apiStatus={apiStatus}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
       <main>{renderPage()}</main>
 
